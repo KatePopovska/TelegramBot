@@ -5,6 +5,7 @@ using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 class Program
 {
@@ -32,7 +33,7 @@ class Program
         _botClient.StartReceiving(UpdateHandler, ErrorHandler, _receiverOptions, cts.Token);
 
         var me = await _botClient.GetMeAsync();
-        Console.WriteLine($"{me.FirstName} запущен!");
+        Console.WriteLine($"{me.FirstName} started!");
 
         await Task.Delay(-1);
     }
@@ -46,11 +47,48 @@ class Program
             {
                 case UpdateType.Message:
 
-                    Console.WriteLine("Пришло сообщение!");
-                    return;
+                    var message = update.Message;
+                    var user = message.From;
+
+                    Console.WriteLine($"{user.FirstName} ({user.Id}) send message: {message.Text}");
+
+                    var chat = message.Chat;
+                    switch (message.Type)
+                    {
+                        case MessageType.Text:
+
+                            if (message.Text == "/start")
+                            {
+                                var inlineKeyboard = new InlineKeyboardMarkup(
+                                   new List<InlineKeyboardButton[]>()
+                                   {
+                                       new InlineKeyboardButton[]
+                                       {
+                                           InlineKeyboardButton.WithCallbackData("Портфолио", "button1"),
+                                           InlineKeyboardButton.WithCallbackData("Прайс", "button2")
+                                       }
+                                   });
+
+                                await botClient.SendTextMessageAsync(
+                                    chat.Id,
+                                    "Select",
+                                    replyMarkup: inlineKeyboard);
+
+                                return;
+                            }
+                            return;
+
+                        default:
+                            {
+                                await botClient.SendTextMessageAsync(
+                                    chat.Id,
+                                    "Используй только текст!");
+                                return;
+                            }
+                    }
             }
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Console.WriteLine(ex.ToString());
         }
